@@ -1,0 +1,56 @@
+name: Build Deploy Trigger Automation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Application
+        run: |
+          echo "Building Application..."
+          sleep 5
+          echo "Build Successful"
+
+  deploy:
+
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Deploy Application
+        run: |
+          echo "Deploying to DEV..."
+          sleep 5
+          echo "Deployment Successful"
+
+  trigger-playwright:
+
+    needs: deploy
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Trigger Playwright Repository
+
+        run: |
+          curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
+          https://api.github.com/repos/Gukapriyan/playwright-typescript-framework/dispatches \
+          -d '{
+            "event_type":"run-playwright"
+          }'
