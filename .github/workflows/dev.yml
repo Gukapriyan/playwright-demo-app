@@ -6,21 +6,21 @@ on:
       - main
 
 jobs:
-
   build:
     name: Build Application
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Build
+      - name: Build Application
         run: |
-          echo "================================"
+          echo "======================================="
           echo "Building Application..."
           sleep 5
           echo "Build Successful"
-          echo "================================"
+          echo "======================================="
 
   deploy:
     name: Deploy to DEV
@@ -28,13 +28,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy
+      - name: Deploy Application
         run: |
-          echo "================================"
+          echo "======================================="
           echo "Deploying Application to DEV..."
           sleep 5
           echo "Deployment Successful"
-          echo "================================"
+          echo "======================================="
 
   trigger-playwright:
     name: Trigger Playwright Automation
@@ -43,14 +43,29 @@ jobs:
 
     steps:
       - name: Trigger Automation Repository
-
+        shell: bash
         run: |
-          curl -L \
-          -X POST \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          https://api.github.com/repos/Gukapriyan/playwright-typescript-framework/dispatches \
-          -d '{
-            "event_type":"run-playwright"
-          }'
+          echo "Triggering Playwright Automation Repository..."
+
+          STATUS=$(curl -s \
+            -o response.txt \
+            -w "%{http_code}" \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/Gukapriyan/playwright-typescript-framework/dispatches \
+            -d '{"event_type":"run-playwright"}')
+
+          echo "======================================="
+          echo "HTTP Status: $STATUS"
+          echo "======================================="
+          echo "Response:"
+          cat response.txt
+
+          if [ "$STATUS" != "204" ]; then
+            echo "Repository dispatch failed!"
+            exit 1
+          fi
+
+          echo "Repository dispatch successful!"
