@@ -8,48 +8,48 @@ on:
 jobs:
 
   build:
-
+    name: Build Application
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build Application
+      - name: Build
         run: |
+          echo "================================"
           echo "Building Application..."
           sleep 5
           echo "Build Successful"
+          echo "================================"
 
   deploy:
-
+    name: Deploy to DEV
     needs: build
-
     runs-on: ubuntu-latest
 
     steps:
-
-      - name: Deploy Application
+      - name: Deploy
         run: |
-          echo "Deploying to DEV..."
+          echo "================================"
+          echo "Deploying Application to DEV..."
           sleep 5
           echo "Deployment Successful"
+          echo "================================"
 
   trigger-playwright:
-
+    name: Trigger Playwright Automation
     needs: deploy
-
     runs-on: ubuntu-latest
 
     steps:
-
-      - name: Trigger Playwright Repository
+      - name: Trigger Automation Repository
 
         run: |
-          curl -X POST \
+          curl -L \
+          -X POST \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
           https://api.github.com/repos/Gukapriyan/playwright-typescript-framework/dispatches \
           -d '{
             "event_type":"run-playwright"
