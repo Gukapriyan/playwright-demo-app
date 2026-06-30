@@ -1,4 +1,4 @@
-name: Build Deploy Trigger Automation
+name: Build Deploy QE Automation
 
 on:
   push:
@@ -6,21 +6,21 @@ on:
       - main
 
 jobs:
+
   build:
     name: Build Application
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Build Application
+      - name: Build
         run: |
-          echo "======================================="
+          echo "================================"
           echo "Building Application..."
           sleep 5
           echo "Build Successful"
-          echo "======================================="
+          echo "================================"
 
   deploy:
     name: Deploy to DEV
@@ -28,44 +28,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy Application
+      - name: Deploy
         run: |
-          echo "======================================="
-          echo "Deploying Application to DEV..."
+          echo "================================"
+          echo "Deploying Application..."
           sleep 5
           echo "Deployment Successful"
-          echo "======================================="
+          echo "================================"
 
-  trigger-playwright:
-    name: Trigger Playwright Automation
+  qe-automation:
+    name: QE Automation
     needs: deploy
     runs-on: ubuntu-latest
 
+    permissions:
+      actions: write
+      contents: read
+
     steps:
-      - name: Trigger Automation Repository
-        shell: bash
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify GitHub CLI
+        run: gh --version
+
+      - name: Trigger Playwright Workflow
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          echo "Triggering Playwright Automation Repository..."
+          gh workflow run playwright1.yml \
+            --repo Gukapriyan/playwright-typescript-framework \
+            --ref main \
+            -f environment=DEV \
+            -f suite=Regression
 
-          STATUS=$(curl -s \
-            -o response.txt \
-            -w "%{http_code}" \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/Gukapriyan/playwright-typescript-framework/dispatches \
-            -d '{"event_type":"run-playwright"}')
-
-          echo "======================================="
-          echo "HTTP Status: $STATUS"
-          echo "======================================="
-          echo "Response:"
-          cat response.txt
-
-          if [ "$STATUS" != "204" ]; then
-            echo "Repository dispatch failed!"
-            exit 1
-          fi
-
-          echo "Repository dispatch successful!"
+          echo "================================"
+          echo "Playwright workflow triggered."
+          echo "================================"
