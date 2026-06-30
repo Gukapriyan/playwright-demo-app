@@ -6,7 +6,6 @@ on:
       - main
 
 jobs:
-
   build:
     name: Build Application
     runs-on: ubuntu-latest
@@ -46,17 +45,17 @@ jobs:
       contents: read
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Verify GitHub CLI
-        run: gh --version
 
       - name: Trigger Playwright Workflow
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
+          set -euo pipefail
+
+          START_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
           gh workflow run playwright1.yml \
             --repo Gukapriyan/playwright-typescript-framework \
             --ref main \
@@ -65,4 +64,41 @@ jobs:
 
           echo "================================"
           echo "Playwright workflow triggered."
+          echo "Waiting for Playwright workflow to start..."
+          echo "================================"
+
+          RUN_ID=""
+          for attempt in {1..30}; do
+            RUN_ID="$(gh run list \
+              --repo Gukapriyan/playwright-typescript-framework \
+              --workflow playwright1.yml \
+              --branch main \
+              --event workflow_dispatch \
+              --json databaseId,createdAt \
+              --jq ".[] | select(.createdAt >= \"$START_TIME\") | .databaseId" \
+              --limit 10 | head -n 1)"
+
+            if [ -n "$RUN_ID" ]; then
+              break
+            fi
+
+            echo "Playwright run not visible yet. Attempt $attempt/30..."
+            sleep 10
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "Unable to find the triggered Playwright workflow run."
+            exit 1
+          fi
+
+          echo "================================"
+          echo "Waiting for Playwright run $RUN_ID to finish..."
+          echo "================================"
+
+          gh run watch "$RUN_ID" \
+            --repo Gukapriyan/playwright-typescript-framework \
+            --exit-status
+
+          echo "================================"
+          echo "Playwright workflow passed."
           echo "================================"
